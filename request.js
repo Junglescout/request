@@ -30,6 +30,7 @@ var Redirect = require('./lib/redirect').Redirect
 var Tunnel = require('./lib/tunnel').Tunnel
 var now = require('performance-now')
 var Buffer = require('safe-buffer').Buffer
+var iltorb = require('iltorb')
 
 var safeStringify = helpers.safeStringify
 var isReadStream = helpers.isReadStream
@@ -1015,7 +1016,7 @@ Request.prototype.onRequestResponse = function (response) {
     }
 
     var responseContent
-    if (self.gzip && !noBody(response.statusCode)) {
+    if (!noBody(response.statusCode)) {
       var contentEncoding = response.headers['content-encoding'] || 'identity'
       contentEncoding = contentEncoding.trim().toLowerCase()
 
@@ -1033,6 +1034,9 @@ Request.prototype.onRequestResponse = function (response) {
         response.pipe(responseContent)
       } else if (contentEncoding === 'deflate') {
         responseContent = zlib.createInflate(zlibOptions)
+        response.pipe(responseContent)
+      } else if (contentEncoding === 'br') {
+        responseContent = iltorb.decompressStream()
         response.pipe(responseContent)
       } else {
         // Since previous versions didn't check for Content-Encoding header,
